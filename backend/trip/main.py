@@ -28,7 +28,6 @@ async def lifespan(app: FastAPI):
     silence_http_logging()
     yield
 
-
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(

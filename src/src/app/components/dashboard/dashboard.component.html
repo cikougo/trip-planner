@@ -362,7 +362,7 @@
       </div>
     </div>
 
-    <p-tabs [(value)]="tabsIndex" (valueChange)="onTabChange($event)" scrollable>
+    <p-tabs [(value)]="tabsIndex" (valueChange)="onTabChange(+$event!)" scrollable>
       <p-tablist>
         <p-tab [value]="0" class="flex items-center gap-2">
           <i class="pi pi-info-circle"></i><span class="font-bold whitespace-nowrap">About</span>

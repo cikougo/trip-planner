@@ -1,4 +1,4 @@
-<p align="center"><img width="120" src="./src/public/favicon.png"></p>
+<p align="center"><img width="120" src="./src/public/TRIP_512.png"></p>
 <h2 align="center">TRIP</h2>
 
 <div align="center">

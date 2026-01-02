@@ -298,7 +298,7 @@ class CategoryRead(CategoryBase):
             id=obj.id,
             name=obj.name,
             image_id=obj.image_id,
-            image=_prefix_assets_url(obj.image.filename) if obj.image else "/favicon.png",
+            image=_prefix_assets_url(obj.image.filename) if obj.image else "/TRIP_512.png",
             color=obj.color if obj.color else "#000000",
         )
 

@@ -15,6 +15,12 @@ export interface Settings {
   mode_display_visited?: boolean;
   mode_map_position?: boolean;
   api_token?: boolean;
+  is_admin?: boolean;
+}
+
+export interface AdminUser {
+  username: string;
+  totp_enabled: boolean;
 }
 
 export interface ImportResponse {

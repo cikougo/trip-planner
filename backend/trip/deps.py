@@ -34,3 +34,10 @@ def get_current_username(token: Annotated[str, Depends(oauth_password_scheme)], 
     if not user:
         raise HTTPException(status_code=401, detail="Invalid Token")
     return user.username
+
+
+def get_admin_username(token: Annotated[str, Depends(oauth_password_scheme)], session: SessionDep) -> str:
+    username = get_current_username(token, session)
+    if not settings.ADMIN_USERNAME or username != settings.ADMIN_USERNAME:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return username

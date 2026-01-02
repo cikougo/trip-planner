@@ -45,7 +45,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { SelectModule } from 'primeng/select';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { TooltipModule } from 'primeng/tooltip';
-import { Backup, Settings } from '../../types/settings';
+import { AdminUser, Backup, Settings } from '../../types/settings';
 import { MenuItem, SelectItemGroup } from 'primeng/api';
 import { YesNoModalComponent } from '../../modals/yes-no-modal/yes-no-modal.component';
 import { CategoryCreateModalComponent } from '../../modals/category-create-modal/category-create-modal.component';
@@ -128,6 +128,9 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   tabsIndex: number = 0;
   backups: Backup[] = [];
   refreshBackups = false;
+  adminUsers: AdminUser[] = [];
+  newUserUsername = '';
+  newUserPassword = '';
 
   settingsForm: FormGroup;
   hoveredElement?: HTMLElement;
@@ -1630,5 +1633,77 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         },
         error: () => this.utilsService.setLoading(''),
       });
+  }
+
+  onTabChange(index: number) {
+    if (index === 5 && this.settings?.is_admin) {
+      this.loadAdminUsers();
+    }
+  }
+
+  // Admin user management
+  loadAdminUsers() {
+    this.apiService
+      .getAdminUsers()
+      .pipe(take(1))
+      .subscribe({
+        next: (users) => (this.adminUsers = users),
+        error: () => this.utilsService.toast('error', 'Error', 'Failed to load users'),
+      });
+  }
+
+  createUser() {
+    if (!this.newUserUsername || !this.newUserPassword) {
+      this.utilsService.toast('warn', 'Warning', 'Username and password required');
+      return;
+    }
+
+    this.apiService
+      .createAdminUser(this.newUserUsername, this.newUserPassword)
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+          this.utilsService.toast('success', 'Success', `User ${this.newUserUsername} created`);
+          this.newUserUsername = '';
+          this.newUserPassword = '';
+          this.loadAdminUsers();
+        },
+        error: (err) => {
+          const msg = err.error?.detail || 'Failed to create user';
+          this.utilsService.toast('error', 'Error', msg);
+        },
+      });
+  }
+
+  deleteUser(username: string) {
+    const modal = this.dialogService.open(YesNoModalComponent, {
+      header: 'Confirm deletion',
+      modal: true,
+      closable: true,
+      dismissableMask: true,
+      breakpoints: {
+        '640px': '90vw',
+      },
+      data: `Delete user "${username}"? This will delete all their data.`,
+    })!;
+
+    modal.onClose.subscribe({
+      next: (confirmed: boolean) => {
+        if (!confirmed) return;
+        this.apiService
+          .deleteAdminUser(username)
+          .pipe(take(1))
+          .subscribe({
+            next: () => {
+              this.utilsService.toast('success', 'Success', `User ${username} deleted`);
+              this.loadAdminUsers();
+            },
+            error: (err) => {
+              const msg = err.error?.detail || 'Failed to delete user';
+              this.utilsService.toast('error', 'Error', msg);
+            },
+          });
+      },
+    });
   }
 }

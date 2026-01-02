@@ -362,7 +362,7 @@
       </div>
     </div>
 
-    <p-tabs [(value)]="tabsIndex" scrollable>
+    <p-tabs [(value)]="tabsIndex" (valueChange)="onTabChange($event)" scrollable>
       <p-tablist>
         <p-tab [value]="0" class="flex items-center gap-2">
           <i class="pi pi-info-circle"></i><span class="font-bold whitespace-nowrap">About</span>
@@ -379,6 +379,11 @@
         <p-tab [value]="4" class="flex items-center gap-2">
           <i class="pi pi-database"></i><span class="font-bold whitespace-nowrap">Data</span>
         </p-tab>
+        @if (settings?.is_admin) {
+        <p-tab [value]="5" class="flex items-center gap-2">
+          <i class="pi pi-users"></i><span class="font-bold whitespace-nowrap">Admin</span>
+        </p-tab>
+        }
       </p-tablist>
       <p-tabpanels>
         <p-tabpanel [value]="0">
@@ -972,6 +977,99 @@
           </div>
 
         </p-tabpanel>
+        @if (settings?.is_admin) {
+        <p-tabpanel [value]="5">
+          <div class="max-h-[60vh] overflow-y-auto overscroll-contain">
+            <div class="flex flex-col gap-4 pt-4 mx-auto">
+              <div
+                class="flex flex-col md:flex-row gap-4 p-5 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/10 dark:to-indigo-900/10 border border-purple-100/50 dark:border-purple-800/30">
+                <div class="flex items-center gap-3 sm:gap-4 min-w-0">
+                  <div
+                    class="flex-shrink-0 flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-purple-500 shadow-sm">
+                    <i class="pi pi-user-plus text-white text-base sm:text-lg"></i>
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <h1 class="text-base font-semibold text-gray-900 dark:text-white">Create User</h1>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">Add a new user account</p>
+                  </div>
+                </div>
+
+                <div class="flex grow flex-wrap items-center justify-center md:justify-end gap-2">
+                  <input type="text" [(ngModel)]="newUserUsername" placeholder="Username" pInputText pSize="small"
+                    class="w-32" />
+                  <input type="password" [(ngModel)]="newUserPassword" placeholder="Password" pInputText pSize="small"
+                    class="w-32" />
+                  <p-button (click)="createUser()" label="Create" icon="pi pi-plus" size="small"
+                    [disabled]="!newUserUsername || !newUserPassword" />
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-2.5">
+                @for (user of adminUsers; track user.username) {
+                <div
+                  class="group flex items-center gap-4 py-4 md:p-4 rounded-lg bg-white dark:bg-gray-800 hover:shadow-sm transition-all duration-200 border border-gray-100 dark:border-gray-700">
+                  <div class="flex-shrink-0">
+                    <div
+                      class="flex items-center justify-center size-10 rounded-lg"
+                      [class]="user.username === settings?.username ? 'bg-purple-50 dark:bg-purple-900/20' : 'bg-gray-50 dark:bg-gray-900/20'">
+                      <i class="pi pi-user"
+                        [class]="user.username === settings?.username ? 'text-purple-600 dark:text-purple-400' : 'text-gray-600 dark:text-gray-400'"></i>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col min-w-0 flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="font-medium text-sm text-gray-900 dark:text-white">
+                        {{ user.username }}
+                      </span>
+                      @if (user.username === settings?.username) {
+                      <span
+                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                        You
+                      </span>
+                      }
+                    </div>
+
+                    <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                      @if (user.totp_enabled) {
+                      <span class="flex items-center gap-1">
+                        <i class="pi pi-lock text-green-600 dark:text-green-400" style="font-size: 10px;"></i>
+                        2FA enabled
+                      </span>
+                      } @else {
+                      <span class="flex items-center gap-1">
+                        <i class="pi pi-lock-open text-gray-400" style="font-size: 10px;"></i>
+                        No 2FA
+                      </span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-1">
+                    @if (user.username !== settings?.username) {
+                    <p-button (click)="deleteUser(user.username)" severity="danger" text icon="pi pi-trash"
+                      pTooltip="Delete user" />
+                    }
+                  </div>
+                </div>
+                } @empty {
+                <div
+                  class="flex flex-col items-center justify-center py-16 px-6 text-center rounded-lg border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+                  <i class="pi pi-users text-gray-300 dark:text-gray-600 mb-3" style="font-size: 2rem;"></i>
+                  <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                    No users yet
+                  </h3>
+                  <p class="text-sm text-gray-600 dark:text-gray-400">
+                    Create your first user above
+                  </p>
+                </div>
+                }
+              </div>
+            </div>
+          </div>
+        </p-tabpanel>
+        }
       </p-tabpanels>
     </p-tabs>
   </div>

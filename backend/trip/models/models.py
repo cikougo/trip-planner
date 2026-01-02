@@ -52,6 +52,15 @@ class AuthParams(BaseModel):
     register_enabled: bool
 
 
+class AdminUserRead(BaseModel):
+    username: str
+    totp_enabled: bool
+
+    @classmethod
+    def serialize(cls, obj: "User") -> "AdminUserRead":
+        return cls(username=obj.username, totp_enabled=obj.totp_enabled)
+
+
 class TripItemStatusEnum(str, Enum):
     PENDING = "pending"
     CONFIRMED = "booked"
@@ -229,6 +238,7 @@ class UserRead(UserBase):
     totp_enabled: bool
     google_apikey: bool
     api_token: bool
+    is_admin: bool = False
 
     @classmethod
     def serialize(cls, obj: User) -> "UserRead":
@@ -247,6 +257,7 @@ class UserRead(UserBase):
             totp_enabled=obj.totp_enabled,
             google_apikey=True if obj.google_apikey else False,
             api_token=True if obj.api_token else False,
+            is_admin=bool(settings.ADMIN_USERNAME and obj.username == settings.ADMIN_USERNAME),
         )
 
 

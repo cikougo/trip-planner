@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 1440
 
     REGISTER_ENABLE: bool = True
+    ADMIN_USERNAME: str = "valirenia"
     OIDC_DISCOVERY_URL: str = ""
     OIDC_CLIENT_ID: str = ""
     OIDC_CLIENT_SECRET: str = ""

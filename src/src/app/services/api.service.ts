@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Category, GoogleBoundaries, GooglePlaceResult, Place } from '../types/poi';
 import { BehaviorSubject, map, Observable, shareReplay, take, tap } from 'rxjs';
 import { Info } from '../types/info';
-import { Backup, ImportResponse, Settings } from '../types/settings';
+import { AdminUser, Backup, ImportResponse, Settings } from '../types/settings';
 import {
   ChecklistItem,
   PackingItem,
@@ -356,5 +356,18 @@ export class ApiService {
 
   resolveGmapsShortLink(id: string): Observable<GooglePlaceResult> {
     return this.httpClient.get<GooglePlaceResult>(`${this.apiBaseUrl}/places/google-resolve/${id}`);
+  }
+
+  // Admin endpoints
+  getAdminUsers(): Observable<AdminUser[]> {
+    return this.httpClient.get<AdminUser[]>(`${this.apiBaseUrl}/auth/admin/users`);
+  }
+
+  createAdminUser(username: string, password: string): Observable<{ username: string }> {
+    return this.httpClient.post<{ username: string }>(`${this.apiBaseUrl}/auth/admin/users`, { username, password });
+  }
+
+  deleteAdminUser(username: string): Observable<{ deleted: string }> {
+    return this.httpClient.delete<{ deleted: string }>(`${this.apiBaseUrl}/auth/admin/users/${username}`);
   }
 }

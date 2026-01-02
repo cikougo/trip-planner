@@ -3,12 +3,13 @@ from typing import Annotated
 import jwt
 from fastapi import APIRouter, Body, Cookie, Depends, HTTPException
 from fastapi.responses import JSONResponse
+from sqlmodel import select
 
 from ..config import settings
 from ..db.core import init_user_data
-from ..deps import SessionDep, get_current_username
-from ..models.models import (AuthParams, LoginRegisterModel, PendingTOTP,
-                             Token, UpdateUserPassword, User)
+from ..deps import SessionDep, get_admin_username, get_current_username
+from ..models.models import (AdminUserRead, AuthParams, LoginRegisterModel,
+                             PendingTOTP, Token, UpdateUserPassword, User)
 from ..security import (create_access_token, create_tokens,
                         generate_totp_secret, get_oidc_client, get_oidc_config,
                         hash_password, verify_password, verify_totp_code)
@@ -193,6 +194,53 @@ def refresh_token(refresh_token: str = Body(..., embed=True)):
         raise HTTPException(status_code=401, detail="Invalid Token")
     except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="Invalid Token")
+
+
+@router.get("/admin/users", response_model=list[AdminUserRead])
+def admin_list_users(
+    session: SessionDep,
+    _: Annotated[str, Depends(get_admin_username)],
+) -> list[AdminUserRead]:
+    users = session.exec(select(User)).all()
+    return [AdminUserRead.serialize(u) for u in users]
+
+
+@router.post("/admin/users")
+def admin_create_user(
+    req: LoginRegisterModel,
+    session: SessionDep,
+    _: Annotated[str, Depends(get_admin_username)],
+):
+    db_user = session.get(User, req.username)
+    if db_user:
+        raise HTTPException(status_code=409, detail="User already exists")
+
+    new_user = User(username=req.username, password=hash_password(req.password))
+    session.add(new_user)
+    session.commit()
+
+    init_user_data(session, new_user.username)
+
+    return {"username": new_user.username}
+
+
+@router.delete("/admin/users/{username}")
+def admin_delete_user(
+    username: str,
+    session: SessionDep,
+    admin_username: Annotated[str, Depends(get_admin_username)],
+):
+    if username == admin_username:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+
+    db_user = session.get(User, username)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    session.delete(db_user)
+    session.commit()
+
+    return {"deleted": username}
 
 
 @router.post("/update_password")

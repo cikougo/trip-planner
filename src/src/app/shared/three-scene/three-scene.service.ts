@@ -30,6 +30,7 @@ export class ThreeSceneService {
     // Create scene
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0a1628);
+    this.scene.fog = new THREE.FogExp2(0x0a1628, 0.05);
 
     // Create camera
     const aspect = container.clientWidth / container.clientHeight;

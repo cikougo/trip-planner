@@ -2,6 +2,8 @@ import { Component, ElementRef, OnDestroy, ViewChild, ChangeDetectionStrategy, A
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ThreeSceneService } from '../three-scene/three-scene.service';
+import { getStarfield } from './get-starfield';
+import { drawThreeGeo } from './three-geo-json';
 
 interface Destination {
   name: string;
@@ -29,24 +31,41 @@ interface Destination {
 export class TravelSceneComponent implements AfterViewInit, OnDestroy {
   @ViewChild('sceneContainer', { static: true }) containerRef!: ElementRef<HTMLElement>;
 
-  private globe!: THREE.Mesh;
+  private readonly GLOBE_RADIUS = 2;
+  private globe!: THREE.Group;
   private floatingObjects: THREE.Object3D[] = [];
   private markers: THREE.Mesh[] = [];
   private glowTexture!: THREE.Texture;
 
   private destinations: Destination[] = [
-    { name: 'Paris', lat: 48.8566, lng: 2.3522, color: 0xff6b6b },
-    { name: 'Tokyo', lat: 35.6762, lng: 139.6503, color: 0x4ecdc4 },
-    { name: 'New York', lat: 40.7128, lng: -74.006, color: 0xffe66d },
-    { name: 'Sydney', lat: -33.8688, lng: 151.2093, color: 0x95e1d3 },
-    { name: 'Cairo', lat: 30.0444, lng: 31.2357, color: 0xf38181 },
-    { name: 'Rio', lat: -22.9068, lng: -43.1729, color: 0xaa96da },
-    { name: 'London', lat: 51.5074, lng: -0.1278, color: 0xfcbad3 },
-    { name: 'Dubai', lat: 25.2048, lng: 55.2708, color: 0xa8d8ea },
-    { name: 'Singapore', lat: 1.3521, lng: 103.8198, color: 0x6bcb77 },
-    { name: 'Los Angeles', lat: 34.0522, lng: -118.2437, color: 0xffd93d },
-    { name: 'Cape Town', lat: -33.9249, lng: 18.4241, color: 0xc9b1ff },
-    { name: 'Moscow', lat: 55.7558, lng: 37.6173, color: 0x4d96ff },
+    // Europe (only Paris and Athens)
+    { name: 'Paris', lat: 48.8566, lng: 2.3522, color: 0xff6b6b }, // 0
+    { name: 'Athens', lat: 37.9838, lng: 23.7275, color: 0x3498db }, // 1
+    // Asia
+    { name: 'Tokyo', lat: 35.6762, lng: 139.6503, color: 0x4ecdc4 }, // 2
+    { name: 'Dubai', lat: 25.2048, lng: 55.2708, color: 0xa8d8ea }, // 3
+    { name: 'Singapore', lat: 1.3521, lng: 103.8198, color: 0x6bcb77 }, // 4
+    { name: 'Bangkok', lat: 13.7563, lng: 100.5018, color: 0xff9a8b }, // 5
+    { name: 'Hong Kong', lat: 22.3193, lng: 114.1694, color: 0xffcc5c }, // 6
+    { name: 'Mumbai', lat: 19.076, lng: 72.8777, color: 0x9b59b6 }, // 7
+    { name: 'Seoul', lat: 37.5665, lng: 126.978, color: 0x3498db }, // 8
+    // North America
+    { name: 'New York', lat: 40.7128, lng: -74.006, color: 0xffe66d }, // 9
+    { name: 'Los Angeles', lat: 34.0522, lng: -118.2437, color: 0xffd93d }, // 10
+    { name: 'San Francisco', lat: 37.7749, lng: -122.4194, color: 0xd4a5a5 }, // 11
+    { name: 'Toronto', lat: 43.6532, lng: -79.3832, color: 0xe67e22 }, // 12
+    { name: 'Mexico City', lat: 19.4326, lng: -99.1332, color: 0x16a085 }, // 13
+    // South America
+    { name: 'Rio', lat: -22.9068, lng: -43.1729, color: 0xaa96da }, // 14
+    { name: 'Buenos Aires', lat: -34.6037, lng: -58.3816, color: 0x1abc9c }, // 15
+    { name: 'Lima', lat: -12.0464, lng: -77.0428, color: 0x8e44ad }, // 16
+    // Africa
+    { name: 'Cairo', lat: 30.0444, lng: 31.2357, color: 0xf38181 }, // 17
+    { name: 'Cape Town', lat: -33.9249, lng: 18.4241, color: 0xc9b1ff }, // 18
+    { name: 'Nairobi', lat: -1.2921, lng: 36.8219, color: 0xf39c12 }, // 19
+    { name: 'Marrakech', lat: 31.6295, lng: -7.9811, color: 0xe67e22 }, // 20
+    // Oceania
+    { name: 'Sydney', lat: -33.8688, lng: 151.2093, color: 0x95e1d3 }, // 21
   ];
 
   constructor(private threeService: ThreeSceneService) {}
@@ -56,16 +75,17 @@ export class TravelSceneComponent implements AfterViewInit, OnDestroy {
       container: this.containerRef.nativeElement,
     });
 
-    camera.position.set(0, 0, 4.5);
+    camera.position.set(0, 0, 5.5);
 
     this.glowTexture = this.createGlowTexture();
 
+    this.createStarfield(scene);
     this.createGlobe(scene);
     this.createDestinationMarkers();
     this.loadAirplanes(scene);
     this.loadSuitcase(scene);
     this.createFloatingPassport(scene);
-    this.createClouds(scene);
+    // this.createClouds(scene);
     this.loadSunglasses(scene);
 
     this.threeService.addAnimationCallback((delta, hoveredObject) => {
@@ -75,28 +95,48 @@ export class TravelSceneComponent implements AfterViewInit, OnDestroy {
   }
 
   private createGlobe(scene: THREE.Scene): void {
-    const geometry = new THREE.IcosahedronGeometry(1.5, 2);
-
-    const material = new THREE.MeshPhongMaterial({
-      color: 0x1a5276,
-      flatShading: true,
-      shininess: 30,
-    });
-
-    this.globe = new THREE.Mesh(geometry, material);
+    this.globe = new THREE.Group();
     scene.add(this.globe);
 
-    const wireframeMaterial = new THREE.MeshBasicMaterial({
-      color: 0x3498db,
-      wireframe: true,
+    // Semi-transparent sphere base
+    const geometry = new THREE.SphereGeometry(this.GLOBE_RADIUS, 32, 32);
+    const solidMaterial = new THREE.MeshPhongMaterial({
+      color: 0x0a1628,
+      shininess: 10,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.7,
     });
-    const wireframe = new THREE.Mesh(geometry.clone(), wireframeMaterial);
-    wireframe.scale.setScalar(1.01);
+    const solidSphere = new THREE.Mesh(geometry, solidMaterial);
+    this.globe.add(solidSphere);
+
+    // Wireframe overlay
+    const lineMat = new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.4,
+    });
+    const edges = new THREE.EdgesGeometry(geometry, 1);
+    const wireframe = new THREE.LineSegments(edges, lineMat);
     this.globe.add(wireframe);
 
+    // Load GeoJSON landmasses
+    fetch('geojson/ne_110m_land.json')
+      .then((response) => response.json())
+      .then((data) => {
+        const countries = drawThreeGeo({
+          json: data,
+          radius: this.GLOBE_RADIUS,
+          color: 0x3498db,
+        });
+        this.globe.add(countries);
+      });
+
     this.threeService.registerInteractiveObject(this.globe);
+  }
+
+  private createStarfield(scene: THREE.Scene): void {
+    const stars = getStarfield({ numStars: 1000 });
+    scene.add(stars);
   }
 
   private latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
@@ -117,7 +157,7 @@ export class TravelSceneComponent implements AfterViewInit, OnDestroy {
       const material = new THREE.MeshBasicMaterial({ color: dest.color });
 
       const marker = new THREE.Mesh(markerGeometry, material);
-      const position = this.latLngToVector3(dest.lat, dest.lng, 1.52);
+      const position = this.latLngToVector3(dest.lat, dest.lng, this.GLOBE_RADIUS + 0.02);
       marker.position.copy(position);
       marker.userData = { destination: dest, baseScale: 1 };
 
@@ -158,21 +198,42 @@ export class TravelSceneComponent implements AfterViewInit, OnDestroy {
   private loadAirplanes(scene: THREE.Scene): void {
     const loader = new GLTFLoader();
 
-    // Define flight routes between destinations with speed adjusted for distance
+    // Define flight routes between destinations
+    const baseVelocity = 0.1; // Consistent visual speed (radians per second on globe surface)
     const routes = [
-      { from: this.destinations[0], to: this.destinations[1], offset: 0, speed: 0.12 }, // Paris -> Tokyo
-      { from: this.destinations[2], to: this.destinations[3], offset: 0.33, speed: 0.1 }, // New York -> Sydney
-      { from: this.destinations[6], to: this.destinations[4], offset: 0.66, speed: 0.08 }, // London -> Cairo
-      { from: this.destinations[7], to: this.destinations[8], offset: 0.15, speed: 0.1 }, // Dubai -> Singapore
-      { from: this.destinations[9], to: this.destinations[1], offset: 0.5, speed: 0.11 }, // Los Angeles -> Tokyo
-      { from: this.destinations[5], to: this.destinations[10], offset: 0.8, speed: 0.09 }, // Rio -> Cape Town
-      { from: this.destinations[11], to: this.destinations[7], offset: 0.25, speed: 0.1 }, // Moscow -> Dubai
+      // Long-haul routes
+      { from: this.destinations[0], to: this.destinations[2], offset: 0 }, // Paris -> Tokyo
+      { from: this.destinations[9], to: this.destinations[21], offset: 0.33 }, // New York -> Sydney
+      { from: this.destinations[3], to: this.destinations[4], offset: 0.15 }, // Dubai -> Singapore
+      { from: this.destinations[10], to: this.destinations[2], offset: 0.5 }, // Los Angeles -> Tokyo
+      { from: this.destinations[14], to: this.destinations[18], offset: 0.8 }, // Rio -> Cape Town
+      { from: this.destinations[11], to: this.destinations[12], offset: 0.55 }, // San Francisco -> Toronto
+      { from: this.destinations[7], to: this.destinations[21], offset: 0.35 }, // Mumbai -> Sydney
+      { from: this.destinations[8], to: this.destinations[10], offset: 0.85 }, // Seoul -> Los Angeles
+      { from: this.destinations[9], to: this.destinations[0], offset: 0.6 }, // New York -> Paris
+      { from: this.destinations[19], to: this.destinations[0], offset: 0.3 }, // Nairobi -> Paris
+      { from: this.destinations[20], to: this.destinations[9], offset: 0.75 }, // Marrakech -> New York
+      { from: this.destinations[16], to: this.destinations[15], offset: 0.5 }, // Lima -> Buenos Aires
+      { from: this.destinations[1], to: this.destinations[3], offset: 0.65 }, // Athens -> Dubai
+      { from: this.destinations[5], to: this.destinations[21], offset: 0.4 }, // Bangkok -> Sydney
+      { from: this.destinations[6], to: this.destinations[11], offset: 0.25 }, // Hong Kong -> San Francisco
     ];
 
     loader.load('models/low_poly_airplane.glb', (gltf) => {
       routes.forEach((route) => {
         const airplane = gltf.scene.clone();
         airplane.scale.setScalar(0.08);
+
+        // Calculate angular distance between points (great circle approximation)
+        const lat1 = (route.from.lat * Math.PI) / 180;
+        const lat2 = (route.to.lat * Math.PI) / 180;
+        const dLat = lat2 - lat1;
+        const dLng = ((route.to.lng - route.from.lng) * Math.PI) / 180;
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+        const angularDistance = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        // Speed = baseVelocity / distance (so all planes move at same visual speed)
+        const flightSpeed = baseVelocity / angularDistance;
 
         airplane.userData = {
           isFlying: true,
@@ -181,7 +242,7 @@ export class TravelSceneComponent implements AfterViewInit, OnDestroy {
           toLat: route.to.lat,
           toLng: route.to.lng,
           flightProgress: route.offset,
-          flightSpeed: route.speed,
+          flightSpeed,
           flightDirection: 1, // 1 = forward, -1 = reverse
           baseScale: 0.08,
           currentScale: 0.08,
@@ -200,7 +261,7 @@ export class TravelSceneComponent implements AfterViewInit, OnDestroy {
     loader.load('models/airport_suitcase.glb', (gltf) => {
       const suitcase = gltf.scene;
       suitcase.scale.setScalar(0.55);
-      suitcase.position.set(-1.0, -0.8, 2.0);
+      suitcase.position.set(1.2, 0.5, 3.0);
       suitcase.rotation.set(0, Math.PI / 4, 0.1); // 45 degrees around Y
 
       suitcase.userData = {
@@ -219,53 +280,54 @@ export class TravelSceneComponent implements AfterViewInit, OnDestroy {
   }
 
   private createFloatingPassport(scene: THREE.Scene): void {
-    const passport = new THREE.Group();
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load('models/passport.png', (texture) => {
+      // Get aspect ratio from texture
+      const aspectRatio = texture.image.width / texture.image.height;
+      const height = 0.5;
+      const width = height * aspectRatio;
 
-    const coverGeometry = new THREE.BoxGeometry(0.18, 0.25, 0.02);
-    const coverMaterial = new THREE.MeshPhongMaterial({
-      color: 0x1a5276,
-      flatShading: true,
+      const geometry = new THREE.PlaneGeometry(width, height);
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide,
+        color: 0xaaaaaa, // Darken the texture
+      });
+
+      const passport = new THREE.Mesh(geometry, material);
+      passport.position.set(1.0, -1.0, 3.0);
+      passport.rotation.set(0.2, -0.3, 0.1);
+      passport.userData = {
+        basePosition: passport.position.clone(),
+        floatOffset: Math.PI,
+        floatSpeed: 1.0,
+        baseScale: 1,
+        currentScale: 1,
+        targetScale: 1,
+      };
+
+      scene.add(passport);
+      this.floatingObjects.push(passport);
+      this.threeService.registerInteractiveObject(passport);
     });
-    const cover = new THREE.Mesh(coverGeometry, coverMaterial);
-    passport.add(cover);
-
-    const emblemGeometry = new THREE.CircleGeometry(0.04, 8);
-    const emblemMaterial = new THREE.MeshBasicMaterial({ color: 0xf1c40f });
-    const emblem = new THREE.Mesh(emblemGeometry, emblemMaterial);
-    emblem.position.z = 0.011;
-    passport.add(emblem);
-
-    passport.position.set(1.0, -1.0, 2.0);
-    passport.rotation.set(0.2, -0.3, 0.1);
-    passport.userData = {
-      basePosition: passport.position.clone(),
-      floatOffset: Math.PI,
-      floatSpeed: 1.0,
-      baseScale: 1,
-      currentScale: 1,
-      targetScale: 1,
-    };
-
-    scene.add(passport);
-    this.floatingObjects.push(passport);
-    this.threeService.registerInteractiveObject(passport);
   }
 
   private loadSunglasses(scene: THREE.Scene): void {
     const loader = new GLTFLoader();
     loader.load('models/sun_glasses_low_poly.glb', (gltf) => {
       const sunglasses = gltf.scene;
-      sunglasses.scale.setScalar(0.002);
-      sunglasses.position.set(-0.8, 0.2, 2.2);
-      sunglasses.rotation.set(0, 0.6, 0.1);
+      sunglasses.scale.setScalar(0.0015);
+      sunglasses.position.set(-0.8, -1.2, 3.2);
+      sunglasses.rotation.set(0, 0.6, 0.36);
 
       sunglasses.userData = {
         basePosition: sunglasses.position.clone(),
         floatOffset: Math.PI * 0.75,
         floatSpeed: 0.9,
-        baseScale: 0.002,
-        currentScale: 0.002,
-        targetScale: 0.002,
+        baseScale: 0.0015,
+        currentScale: 0.0015,
+        targetScale: 0.0015,
       };
 
       scene.add(sunglasses);
@@ -283,14 +345,14 @@ export class TravelSceneComponent implements AfterViewInit, OnDestroy {
     });
 
     const cloudConfigs = [
-      { orbitRadius: 1.62, orbitSpeed: 0.15, orbitOffset: 0, yOffset: 0.6, scale: 0.3 },
-      { orbitRadius: 1.65, orbitSpeed: 0.12, orbitOffset: Math.PI / 2, yOffset: -0.4, scale: 0.35 },
-      { orbitRadius: 1.6, orbitSpeed: 0.18, orbitOffset: Math.PI, yOffset: 0.1, scale: 0.25 },
-      { orbitRadius: 1.64, orbitSpeed: 0.1, orbitOffset: Math.PI * 1.5, yOffset: -0.7, scale: 0.3 },
-      { orbitRadius: 1.61, orbitSpeed: 0.14, orbitOffset: Math.PI / 4, yOffset: 0.9, scale: 0.22 },
-      { orbitRadius: 1.63, orbitSpeed: 0.11, orbitOffset: Math.PI * 0.75, yOffset: -0.2, scale: 0.28 },
-      { orbitRadius: 1.62, orbitSpeed: 0.16, orbitOffset: Math.PI * 1.25, yOffset: 0.4, scale: 0.26 },
-      { orbitRadius: 1.65, orbitSpeed: 0.09, orbitOffset: Math.PI * 1.75, yOffset: -0.9, scale: 0.32 },
+      { orbitRadius: 2.12, orbitSpeed: 0.15, orbitOffset: 0, yOffset: 0.6, scale: 0.3 },
+      { orbitRadius: 2.15, orbitSpeed: 0.12, orbitOffset: Math.PI / 2, yOffset: -0.4, scale: 0.35 },
+      { orbitRadius: 2.1, orbitSpeed: 0.18, orbitOffset: Math.PI, yOffset: 0.1, scale: 0.25 },
+      { orbitRadius: 2.14, orbitSpeed: 0.1, orbitOffset: Math.PI * 1.5, yOffset: -0.7, scale: 0.3 },
+      { orbitRadius: 2.11, orbitSpeed: 0.14, orbitOffset: Math.PI / 4, yOffset: 0.9, scale: 0.22 },
+      { orbitRadius: 2.13, orbitSpeed: 0.11, orbitOffset: Math.PI * 0.75, yOffset: -0.2, scale: 0.28 },
+      { orbitRadius: 2.12, orbitSpeed: 0.16, orbitOffset: Math.PI * 1.25, yOffset: 0.4, scale: 0.26 },
+      { orbitRadius: 2.15, orbitSpeed: 0.09, orbitOffset: Math.PI * 1.75, yOffset: -0.9, scale: 0.32 },
     ];
 
     cloudConfigs.forEach((config) => {
@@ -396,9 +458,9 @@ export class TravelSceneComponent implements AfterViewInit, OnDestroy {
         const lng = fromLng + (toLng - fromLng) * progress;
 
         // Height above surface: small offset at start/end, max in middle (sine curve)
-        const globeRadius = 1.5;
-        const minFlightHeight = 0.08; // Slightly above surface at start/end
-        const maxFlightHeight = 0.4;
+        const globeRadius = this.GLOBE_RADIUS;
+        const minFlightHeight = 0.05; // Slightly above surface at start/end
+        const maxFlightHeight = 0.25;
         const heightAboveSurface = minFlightHeight + Math.sin(progress * Math.PI) * (maxFlightHeight - minFlightHeight);
         const altitude = globeRadius + heightAboveSurface;
 

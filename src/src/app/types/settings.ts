@@ -17,6 +17,12 @@ export interface Settings {
   api_token?: boolean;
   map_provider?: string;
   duplicate_dist?: number;
+  is_admin?: boolean;
+}
+
+export interface AdminUser {
+  username: string;
+  totp_enabled: boolean;
 }
 
 export interface ImportResponse {

@@ -1,7 +1,7 @@
 {
-  "name": "TRIP",
-  "short_name": "TRIP",
-  "description": "Tourism and Recreational Interest Points",
+  "name": "Vali Travels",
+  "short_name": "Vali Travels",
+  "description": "Vali's personal trip planner",
   "theme_color": "#1E293B",
   "background_color": "#ffffff",
   "display": "standalone",

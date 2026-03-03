@@ -47,6 +47,16 @@ def _prefix_assets_url(filename: str) -> str:
     return base + filename
 
 
+class AdminUserRead(BaseModel):
+    username: str
+    totp_enabled: bool
+
+    @classmethod
+    def serialize(cls, obj: "User") -> "AdminUserRead":
+        return cls(username=obj.username, totp_enabled=obj.totp_enabled)
+
+
+
 class TripItemStatusEnum(str, Enum):
     PENDING = "pending"
     CONFIRMED = "booked"
@@ -256,6 +266,7 @@ class UserRead(UserBase):
     google_apikey: bool
     api_token: bool
     map_provider: str
+    is_admin: bool = False
 
     @classmethod
     def serialize(cls, obj: User) -> "UserRead":
@@ -276,6 +287,7 @@ class UserRead(UserBase):
             api_token=True if obj.api_token else False,
             map_provider=obj.map_provider.value,
             duplicate_dist=obj.duplicate_dist,
+            is_admin=bool(settings.ADMIN_USERNAME and obj.username == settings.ADMIN_USERNAME),
         )
 
 

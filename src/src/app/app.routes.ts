@@ -13,7 +13,7 @@ export const routes: Routes = [
     path: 'auth',
     pathMatch: 'full',
     component: AuthComponent,
-    title: 'TRIP - Authentication',
+    title: 'Vali Travels - Authentication',
   },
 
   {
@@ -22,7 +22,7 @@ export const routes: Routes = [
       {
         path: 't/:token',
         component: SharedTripComponent,
-        title: 'TRIP - Shared Trip',
+        title: 'Vali Travels - Shared Trip',
       },
 
       { path: '**', redirectTo: '/home', pathMatch: 'full' },
@@ -36,7 +36,7 @@ export const routes: Routes = [
       {
         path: 'home',
         component: DashboardComponent,
-        title: 'TRIP - Map',
+        title: 'Vali Travels - Map',
       },
       {
         path: 'trips',
@@ -44,12 +44,12 @@ export const routes: Routes = [
           {
             path: '',
             component: TripsComponent,
-            title: 'TRIP - Trips',
+            title: 'Vali Travels - Trips',
           },
           {
             path: ':id',
             component: TripComponent,
-            title: 'TRIP - Trip',
+            title: 'Vali Travels - Trip',
           },
         ],
       },

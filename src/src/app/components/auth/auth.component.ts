@@ -12,6 +12,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { SkeletonModule } from 'primeng/skeleton';
 import { InputOtpModule } from 'primeng/inputotp';
 import { take } from 'rxjs';
+import { TravelSceneComponent } from '../../shared/travel-scene/travel-scene.component';
 
 @Component({
   selector: 'app-auth',
@@ -26,6 +27,7 @@ import { take } from 'rxjs';
     FocusTrapModule,
     MessageModule,
     InputOtpModule,
+    TravelSceneComponent,
   ],
   templateUrl: './auth.component.html',
   styleUrl: './auth.component.scss',

@@ -4,7 +4,7 @@ import { Category, ProviderBoundaries, Place } from '../types/poi';
 import { RoutingQuery, RoutingResponse, ProviderPlaceResult } from '../types/provider';
 import { BehaviorSubject, map, Observable, shareReplay, take, tap } from 'rxjs';
 import { Info } from '../types/info';
-import { Backup, ImportResponse, Settings } from '../types/settings';
+import { AdminUser, Backup, ImportResponse, Settings } from '../types/settings';
 import {
   ChecklistItem,
   PackingItem,
@@ -367,5 +367,18 @@ export class ApiService {
 
   completionGoogleShortlink(id: string): Observable<ProviderPlaceResult> {
     return this.httpClient.get<ProviderPlaceResult>(`${this.apiBaseUrl}/completions/google/resolve-shortlink/${id}`);
+  }
+
+  // Admin endpoints
+  getAdminUsers(): Observable<AdminUser[]> {
+    return this.httpClient.get<AdminUser[]>(`${this.apiBaseUrl}/auth/admin/users`);
+  }
+
+  createAdminUser(username: string, password: string): Observable<{ username: string }> {
+    return this.httpClient.post<{ username: string }>(`${this.apiBaseUrl}/auth/admin/users`, { username, password });
+  }
+
+  deleteAdminUser(username: string): Observable<{ deleted: string }> {
+    return this.httpClient.delete<{ deleted: string }>(`${this.apiBaseUrl}/auth/admin/users/${username}`);
   }
 }
